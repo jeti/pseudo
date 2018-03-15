@@ -54,10 +54,10 @@ public:
                             Bool,
                             Data,
                             n_vars> *> &inequality_constraints,
-                    const T equality_lower_bound = -1e-10,
-                    const T equality_upper_bound = +1e-10,
+                    const T equality_lower_bound = 0,
+                    const T equality_upper_bound = 0,
                     const T inequality_lower_bound = -1e10,
-                    const T inequality_upper_bound = +1e-10)
+                    const T inequality_upper_bound = 0)
             : equality_constraints(equality_constraints),
               inequality_constraints(inequality_constraints),
               equality_lower_bound(equality_lower_bound),
