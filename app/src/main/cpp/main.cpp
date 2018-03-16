@@ -42,10 +42,9 @@ using Values = Matrix<T, Dynamic, 1>;
 using Get = VariableGetter<T, Index, n_x, n_u, n_c, n_w>;
 using PD = ProblemData<T, Index, Bool, Data, n_x, n_u, n_c, n_w>;
 
-template <typename T>
+template<typename T>
 void log_state(T *vars, bool waypoints = true,
-               const IOFormat &format = IOFormat(4, 0, " ", "\n", "", "", "", ""))
-{
+               const IOFormat &format = IOFormat(4, 0, " ", "\n", "", "", "", "")) {
 
     /* First, write the times to the string  */
     cout << endl
@@ -61,21 +60,16 @@ void log_state(T *vars, bool waypoints = true,
     cout << "Controls: ";
     cout << endl
          << endl;
-    if (waypoints)
-    {
-        for (Index i_w = 0; i_w < n_w; ++i_w)
-        {
+    if (waypoints) {
+        for (Index i_w = 0; i_w < n_w; ++i_w) {
             cout << "Waypoint " << i_w << endl;
             auto u = Get::controlsAtWaypoint(vars, i_w);
             cout << u.format(format);
             cout << endl
                  << endl;
         }
-    }
-    else
-    {
-        for (Index i_c = 0; i_c < n_c; ++i_c)
-        {
+    } else {
+        for (Index i_c = 0; i_c < n_c; ++i_c) {
             cout << "Collocation point " << i_c << endl;
             auto u = Get::controlsAtCollocationPoint(vars, i_c);
             cout << u.format(format);
@@ -90,21 +84,16 @@ void log_state(T *vars, bool waypoints = true,
     cout << "States: ";
     cout << endl
          << endl;
-    if (waypoints)
-    {
-        for (Index i_w = 0; i_w < n_w; ++i_w)
-        {
+    if (waypoints) {
+        for (Index i_w = 0; i_w < n_w; ++i_w) {
             cout << "Waypoint " << i_w << endl;
             auto x = Get::statesAtWaypoint(vars, i_w);
             cout << x.format(format);
             cout << endl
                  << endl;
         }
-    }
-    else
-    {
-        for (Index i_c = 0; i_c < n_c; ++i_c)
-        {
+    } else {
+        for (Index i_c = 0; i_c < n_c; ++i_c) {
             cout << "Collocation point " << i_c << endl;
             auto x = Get::statesAtCollocationPoint(vars, i_c);
             cout << x.format(format);
@@ -117,13 +106,11 @@ void log_state(T *vars, bool waypoints = true,
     cout << endl;
 }
 
-class Strings
-{
-  public:
+class Strings {
+public:
     std::vector<std::vector<char>> strings;
 
-    char *operator()(const std::string &str)
-    {
+    char *operator()(const std::string &str) {
         std::vector<char> chars(str.begin(), str.end());
         chars.push_back('\0');
         strings.push_back(chars);
@@ -139,8 +126,7 @@ extern "C" Bool eval_f(Index n_vars_,
                        T *x,
                        Bool new_x,
                        T *obj_value,
-                       Data *data)
-{
+                       Data *data) {
     assert(n_vars == n_vars_);
     *obj_value = Get::times(x).sum();
     return TRUE;
@@ -153,8 +139,7 @@ extern "C" Bool eval_grad_f(Index n_vars_,
                             T *x,
                             Bool new_x,
                             T *grad_f,
-                            Data *data)
-{
+                            Data *data) {
     assert(n_vars == n_vars_);
     Get::setZero(grad_f);
     Get::times(grad_f).setOnes();
@@ -166,8 +151,7 @@ extern "C" Bool eval_g(Index n_vars_,
                        Bool new_x,
                        Index n_constraints_,
                        T *g,
-                       Data *data)
-{
+                       Data *data) {
 
     PD *pd = static_cast<PD *>(data);
     assert(n_vars == n_vars_);
@@ -184,19 +168,15 @@ extern "C" Bool eval_jac_g(Index n_vars_,
                            Index *nonzero_rows,
                            Index *nonzero_cols,
                            T *dgdx,
-                           Data *data)
-{
+                           Data *data) {
     PD *pd = static_cast<PD *>(data);
     assert(n_vars == n_vars_);
     assert(pd->fused_constraint.getNumberOfConstraints() == n_constraints_);
     assert(pd->fused_constraint.getNumberOfJacobianNonzeros() == jacobian_nonzeros_);
-    if (dgdx)
-    {
+    if (dgdx) {
         /* If dgdx is not a null pointer, evaluate. */
         pd->fused_constraint.evaluateJacobian(x, new_x, dgdx, data);
-    }
-    else
-    {
+    } else {
         /* Otherwise, IPOPT wants our sparsity structure. */
         Map<Matrix<Index, Dynamic, 1>> rows(nonzero_rows, jacobian_nonzeros_);
         rows = pd->fused_constraint.getNonzeroJacobianRows();
@@ -213,19 +193,16 @@ extern "C" Bool eval_jac_g(Index n_vars_,
 extern "C" Bool eval_h(Index n_vars_, T *x, Bool new_x, T obj_factor,
                        Index n_constraints_, T *lambda, Bool new_lambda,
                        Index hessian_nonzeros, Index *iRow, Index *jCol,
-                       T *values, Data *data)
-{
-    PD *pd = static_cast<PD *>(data);
+                       T *values, Data *data) {
     assert(n_vars == n_vars_);
-    assert(pd->fused_constraint.getNumberOfConstraints() == n_constraints_);
+    assert(static_cast<PD *>(data)->fused_constraint.getNumberOfConstraints() == n_constraints_);
     return FALSE;
 }
 
 extern "C" Bool intermediate_cb(Index alg_mod, Index iter_count, T obj_value,
                                 T inf_pr, T inf_du, T mu, T d_norm,
                                 T regularization_size, T alpha_du,
-                                T alpha_pr, Index ls_trials, Data *data)
-{
+                                T alpha_pr, Index ls_trials, Data *data) {
     printf("Testing intermediate callback in iteration %d\n", iter_count);
     if (inf_pr < 1e-4)
         return FALSE;
@@ -237,13 +214,12 @@ extern "C" Bool intermediate_cb(Index alg_mod, Index iter_count, T obj_value,
 
 extern "C" JNIEXPORT jdouble JNICALL
 Java_io_pcess_trajectory_1optimization_MainActivity_optimizetrajectory(JNIEnv *env,
-                                                                       jobject object)
-{
+                                                                       jobject object) {
 
 #else
 
-int main()
-{
+    int main()
+    {
 
 #endif
 
@@ -306,8 +282,7 @@ int main()
     Matrix<T, n_x, 1> x_max;
     x_max << 2e19, 2e19, 0, 2e19, 2e19, 2e19;
 
-    for (Index i_w = 0; i_w < n_w; ++i_w)
-    {
+    for (Index i_w = 0; i_w < n_w; ++i_w) {
         auto x_lower = Get::statesAtWaypoint(lower_bound.data(), i_w);
         x_lower = x_min.replicate<1, n_c>();
         auto x_upper = Get::statesAtWaypoint(upper_bound.data(), i_w);
@@ -321,8 +296,7 @@ int main()
     Matrix<T, n_u, 1> u_max;
     u_max << 2 * 9.91, 30 * M_PI / 180, 30 * M_PI / 180, 2 * 360 * M_PI / 180;
 
-    for (Index i_w = 0; i_w < n_w; ++i_w)
-    {
+    for (Index i_w = 0; i_w < n_w; ++i_w) {
         auto u_lower = Get::controlsAtWaypoint(lower_bound.data(), i_w);
         u_lower = u_min.template replicate<1, n_c>();
         auto u_upper = Get::controlsAtWaypoint(upper_bound.data(), i_w);
@@ -361,8 +335,7 @@ int main()
      * interpolated = final - (1 - collocation_point) * ( final - initial )
      */
     Matrix<T, n_c, 1> dc = -collocation_points.array() + 1;
-    for (Index i_c = 0; i_c < n_c; ++i_c)
-    {
+    for (Index i_c = 0; i_c < n_c; ++i_c) {
         auto x = Get::statesAtCollocationPoint(initial_guess.data(), i_c);
         x = waypoints - dc(i_c) * differences;
     }
@@ -386,7 +359,8 @@ int main()
     T max_angular_rate = 30 * M_PI / 180;
     u_dot_max << 20, max_angular_rate, max_angular_rate, max_angular_rate;
     Matrix<T, n_u, 1> u_dot_min = -u_dot_max;
-    ControlRateConstraints<T, Index, Bool, Data, n_x, n_u, n_c, n_w> control_rate_constraints(u_dot_min, u_dot_max);
+    ControlRateConstraints<T, Index, Bool, Data, n_x, n_u, n_c, n_w>
+        control_rate_constraints(u_dot_min, u_dot_max);
 
     /* Create constraints for each of the positions */
     WaypointConstraint<T, Index, Bool, Data, n_x, n_u, n_c, n_w> waypoint_x(0, waypoints.row(0));
@@ -398,13 +372,10 @@ int main()
     std::vector<EqualityConstraint<T, Index, Bool, Data, n_vars> *> equality_constraints;
     equality_constraints.push_back(&initial_state_constraints);
     equality_constraints.push_back(&smooth_control_constraints);
-    bool use_all_waypoints = false;
-    if (use_all_waypoints)
-    {
-    equality_constraints.push_back(&waypoint_constraints);
-    }
-    else
-    {
+    bool use_all_waypoints = true;
+    if (use_all_waypoints) {
+        equality_constraints.push_back(&waypoint_constraints);
+    } else {
         equality_constraints.push_back(&waypoint_x);
         equality_constraints.push_back(&waypoint_y);
         equality_constraints.push_back(&waypoint_z);
@@ -479,15 +450,13 @@ int main()
                                           &eval_h);
 
     const bool check_jacobians = false;
-    if (check_jacobians)
-    {
+    if (check_jacobians) {
 
         Matrix<T, n_vars, 1> xx;
         for (int i = 0; i < n_vars; ++i)
             xx(i) = i + 1;
         auto times = Get::times(xx.data());
-        for (int i = 0; i < n_w; ++i)
-        {
+        for (int i = 0; i < n_w; ++i) {
             times(i) = 1;
         }
         Bool new_x = true;
@@ -495,11 +464,9 @@ int main()
         Mat full = full_jacobian(pd->fused_constraint, xx.data(), new_x, data);
         Mat fd = finite_difference(pd->fused_constraint, xx.data(), new_x, data);
         Mat check = check_jacobian(pd->fused_constraint, xx.data(), new_x, data);
-        if (verbose)
-        {
+        if (verbose) {
             bool ints = true;
-            if (ints)
-            {
+            if (ints) {
                 cout << "derivative coefficients" << endl
                      << endl
                      << pd->getter.rightDerivativeCoefficients() << endl
@@ -516,9 +483,7 @@ int main()
                      << endl
                      << check.cast<Index>() << endl
                      << "-------------------------------------" << endl;
-            }
-            else
-            {
+            } else {
                 IOFormat format(2, 0, " ", "\n", "", "", "", "");
                 cout << "derivative coefficients" << endl
                      << endl
@@ -537,14 +502,14 @@ int main()
                      << check.format(format) << endl
                      << "-------------------------------------" << endl;
             }
-        cout << "nonzero_rows" << endl
-             << endl
-             << pd->fused_constraint.getNonzeroJacobianRows() << endl
-             << endl;
-        cout << "nonzero_cols" << endl
-             << endl
-             << pd->fused_constraint.getNonzeroJacobianCols() << endl
-             << endl;
+            cout << "nonzero_rows" << endl
+                 << endl
+                 << pd->fused_constraint.getNonzeroJacobianRows() << endl
+                 << endl;
+            cout << "nonzero_cols" << endl
+                 << endl
+                 << pd->fused_constraint.getNonzeroJacobianCols() << endl
+                 << endl;
         }
         cout << "max jacobian error: " << endl
              << endl
@@ -567,7 +532,7 @@ int main()
     AddIpoptIntOption(nlp, str("max_iter"), 500);
     AddIpoptStrOption(nlp, str("mu_strategy"), str("adaptive"));
     AddIpoptStrOption(nlp, str("hessian_approximation"), str("limited-memory"));
-    AddIpoptIntOption(nlp, str("print_level"), 5);
+    AddIpoptIntOption(nlp, str("print_level"), 0);
     // AddIpoptStrOption(nlp, str("warm_start_init_point"), str("yes"));
 
     /* objective value at the solution */
@@ -595,9 +560,8 @@ int main()
 
     enum ApplicationReturnStatus status;
     long long elapsed = 0;
-    const int iterations = 10;
-    for (int iteration = 0; iteration < iterations; ++iteration)
-    {
+    const int iterations = 1;
+    for (int iteration = 0; iteration < iterations; ++iteration) {
         solution = initial_guess;
         auto start = std::chrono::high_resolution_clock::now();
         status = IpoptSolve(nlp,
@@ -627,18 +591,16 @@ int main()
          << "Cost   = " << obj << endl
          << endl;
 
-    if (verbose)
-    {
-    log_state(solution.data());
+    if (verbose) {
+        log_state(solution.data());
 
-    /* Show us the min and max value of all of the constraints at the solution */
-    for (auto &constraint : equality_constraints)
-    {
-        Bool new_x = true;
-        Matrix<T, Dynamic, 1> g(constraint->getNumberOfConstraints());
-        constraint->evaluate(solution.data(), new_x, g.data(), data);
-        cout << "constraint min = " << g.minCoeff() << ", max = " << g.maxCoeff() << endl;
-    }
+        /* Show us the min and max value of all of the constraints at the solution */
+        for (auto &constraint : equality_constraints) {
+            Bool new_x = true;
+            Matrix<T, Dynamic, 1> g(constraint->getNumberOfConstraints());
+            constraint->evaluate(solution.data(), new_x, g.data(), data);
+            cout << "constraint min = " << g.minCoeff() << ", max = " << g.maxCoeff() << endl;
+        }
     }
 
     /* Free allocated memory */

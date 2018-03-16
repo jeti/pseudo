@@ -52,7 +52,8 @@ private:
      * Specifically, it would not be portable because
      * it would directly expose the underlying representation of the data.
      */
-    static auto asMatrix(T *raw_ptr) {
+    static auto asMatrix(T *raw_ptr)
+    -> decltype(Eigen::Map<Eigen::Matrix<T, (n_x + n_u) * n_c, n_w>>(raw_ptr)) {
         return Eigen::Map<Eigen::Matrix<T, (n_x + n_u) * n_c, n_w>>(raw_ptr);
     }
 
@@ -74,23 +75,23 @@ public:
     void derivatives(T *raw_ptr, T *derivative_memory) const {
         for (Index i_w = 0; i_w < n_w; ++i_w)
             varsAtWaypoint(derivative_memory, i_w) =
-                    varsAtWaypoint(raw_ptr, i_w) * derivative_coefficients / times(raw_ptr)(i_w);
+                varsAtWaypoint(raw_ptr, i_w) * derivative_coefficients / times(raw_ptr)(i_w);
     }
 
     /** Compute the derivatives, but do not scale by time. */
     void derivativesUnscaled(T *raw_ptr, T *derivative_memory) const {
         for (Index i_w = 0; i_w < n_w; ++i_w)
             varsAtWaypoint(derivative_memory, i_w) =
-                    varsAtWaypoint(raw_ptr, i_w) * derivative_coefficients;
+                varsAtWaypoint(raw_ptr, i_w) * derivative_coefficients;
     }
 
     /** Compute both the scaled and unscaled derivatives. */
     void derivatives(T *raw_ptr, T *derivative_memory, T *derivative_unscaled_memory) const {
         for (Index i_w = 0; i_w < n_w; ++i_w) {
             varsAtWaypoint(derivative_unscaled_memory, i_w) =
-                    varsAtWaypoint(raw_ptr, i_w) * derivative_coefficients;
+                varsAtWaypoint(raw_ptr, i_w) * derivative_coefficients;
             varsAtWaypoint(derivative_memory, i_w) =
-                    varsAtWaypoint(derivative_unscaled_memory, i_w) / times(raw_ptr)(i_w);
+                varsAtWaypoint(derivative_unscaled_memory, i_w) / times(raw_ptr)(i_w);
         }
     }
 
@@ -124,7 +125,9 @@ public:
      * that is, a matrix of shape (n_x+n_u) x n_w,
      * holding all of the states and controls at collocation point i_c.
      */
-    static auto varsAtCollocationPoint(T *raw_ptr, Index i_c) {
+    static auto
+    varsAtCollocationPoint(T *raw_ptr, Index i_c)
+    -> decltype(asMatrix(raw_ptr).template middleRows<n_x + n_u>((n_x + n_u) * i_c)) {
         return asMatrix(raw_ptr).template middleRows<n_x + n_u>((n_x + n_u) * i_c);
     }
 
@@ -135,7 +138,8 @@ public:
      * that is, a matrix of shape n_x x n_w,
      * holding all of the states at collocation point i_c.
      */
-    static auto statesAtCollocationPoint(T *raw_ptr, Index i_c) {
+    static auto statesAtCollocationPoint(T *raw_ptr, Index i_c)
+    -> decltype(varsAtCollocationPoint(raw_ptr, i_c).template topRows<n_x>()) {
         return varsAtCollocationPoint(raw_ptr, i_c).template topRows<n_x>();
     }
 
@@ -146,7 +150,8 @@ public:
      * that is, a matrix of shape n_x x 1,
      * holding the state at collocation point i_c and waypoint i_w.
      */
-    static auto state(T *raw_ptr, Index i_c, Index i_w) {
+    static auto state(T *raw_ptr, Index i_c, Index i_w)
+    -> decltype(statesAtCollocationPoint(raw_ptr, i_c).col(i_w)) {
         return statesAtCollocationPoint(raw_ptr, i_c).col(i_w);
     }
 
@@ -157,7 +162,8 @@ public:
      * that is, a matrix of shape n_u x n_w,
      * holding all of the controls at collocation point i_c.
      */
-    static auto controlsAtCollocationPoint(T *raw_ptr, Index i_c) {
+    static auto controlsAtCollocationPoint(T *raw_ptr, Index i_c)
+    -> decltype(varsAtCollocationPoint(raw_ptr, i_c).template bottomRows<n_u>()) {
         return varsAtCollocationPoint(raw_ptr, i_c).template bottomRows<n_u>();
     }
 
@@ -168,7 +174,8 @@ public:
      * that is, a matrix of shape n_u x 1,
      * holding all of the controls at collocation point i_c and waypoint i_w.
      */
-    static auto control(T *raw_ptr, Index i_c, Index i_w) {
+    static auto control(T *raw_ptr, Index i_c, Index i_w)
+    -> decltype(controlsAtCollocationPoint(raw_ptr, i_c).col(i_w)) {
         return controlsAtCollocationPoint(raw_ptr, i_c).col(i_w);
     }
 
@@ -180,7 +187,8 @@ public:
      * that is, a matrix of shape (n_x + n_u) x n_c,
      * holding all of the states and controls at waypoint i_w.
      */
-    static auto varsAtWaypoint(T *raw_ptr, Index i_w) {
+    static auto varsAtWaypoint(T *raw_ptr, Index i_w)
+    -> decltype(Eigen::Map<Eigen::Matrix<T, n_x + n_u, n_c>>(asMatrix(raw_ptr).col(i_w).data())) {
         return Eigen::Map<Eigen::Matrix<T, n_x + n_u, n_c>>(asMatrix(raw_ptr).col(i_w).data());
     }
 
@@ -191,7 +199,8 @@ public:
      * that is, a matrix of shape n_x x n_c,
      * holding all of the states at waypoint i_w.
      */
-    static auto statesAtWaypoint(T *raw_ptr, Index i_w) {
+    static auto statesAtWaypoint(T *raw_ptr, Index i_w)
+    -> decltype(varsAtWaypoint(raw_ptr, i_w).template topRows<n_x>()) {
         return varsAtWaypoint(raw_ptr, i_w).template topRows<n_x>();
     }
 
@@ -202,7 +211,8 @@ public:
      * that is, a matrix of shape n_u x n_c,
      * holding all of the controls at waypoint i_w.
      */
-    static auto controlsAtWaypoint(T *raw_ptr, Index i_w) {
+    static auto controlsAtWaypoint(T *raw_ptr, Index i_w)
+    -> decltype(varsAtWaypoint(raw_ptr, i_w).template bottomRows<n_u>()) {
         return varsAtWaypoint(raw_ptr, i_w).template bottomRows<n_u>();
     }
 
@@ -213,7 +223,8 @@ public:
      * that is, a matrix of shape 1 x n_w,
      * holding all of the times.
      */
-    static auto times(T *raw_ptr) {
+    static auto times(T *raw_ptr)
+    -> decltype(Eigen::Map<Eigen::Matrix<T, 1, n_w>>(raw_ptr + (n_x + n_u) * n_c * n_w)) {
         return Eigen::Map<Eigen::Matrix<T, 1, n_w>>(raw_ptr + (n_x + n_u) * n_c * n_w);
     }
 
